@@ -112,7 +112,7 @@ def show_login_frame():
     signup_frame.pack_forget()
     login_frame.pack(expand=True)
     
-def create_employee_role_chart(Role):
+def create_employee_role_chart(Role, user_id):
     global main_frame
     try:
         # Clear previous content if any
@@ -146,12 +146,22 @@ def create_employee_role_chart(Role):
         
         def Transfers(cursor, chart_frame):
             try:
-                # Data for bar chart: From which store do we have transfers
-                query = "SELECT SourceStoreID, COUNT(*) FROM Transfers GROUP BY SourceStoreID"
+                # Data for bar chart: Inventory categories
+                query = "SELECT Category, COUNT(*) FROM Inventory GROUP BY Category"
                 cursor.execute(query)
-                source_store_counts = cursor.fetchall()
+                category_counts = cursor.fetchall()
 
-                # Data for line graph: Quantity and Request Date
+                # Data for line graph: Inventory prices
+                query = "SELECT Price, COUNT(*) FROM Inventory GROUP BY Price"
+                cursor.execute(query)
+                price_counts = cursor.fetchall()
+
+                # Data for bar chart: Inventory sizes
+                query = "SELECT size, COUNT(*) FROM Inventory GROUP BY size"
+                cursor.execute(query)
+                size_counts = cursor.fetchall()
+
+                # Data for line graph: Quantity and Request Date from Transfers
                 query = "SELECT Quantity, RequestDate FROM Transfers"
                 cursor.execute(query)
                 quantity_request_data = cursor.fetchall()
@@ -168,87 +178,7 @@ def create_employee_role_chart(Role):
 
                 cursor.close()
 
-                # Extract data for charts
-                source_stores = [store[0] for store in source_store_counts]
-                source_store_count_values = [count[1] for count in source_store_counts]
-
-                quantities = [data[0] for data in quantity_request_data]
-                request_dates = [data[1] for data in quantity_request_data]
-
-                statuses = [status[0] for status in status_counts]
-                status_count_values = [count[1] for count in status_counts]
-
-                request_dates = [data[0] for data in request_approval_dates]
-                approval_dates = [data[1] for data in request_approval_dates]
-
-                # Create the bar chart for source stores
-                fig1, ax1 = plt.subplots(figsize=(10, 6))
-                ax1.bar(source_stores, source_store_count_values, color='purple')
-                ax1.set_xlabel('Source Store IDs')
-                ax1.set_ylabel('Number of Transfers')
-                ax1.set_title('Transfers Distribution by Source Store')
-                ax1.set_xticks(range(len(source_stores)))
-                ax1.set_xticklabels(source_stores, rotation=45)
-
-                # Embed the first chart
-                canvas1 = FigureCanvasTkAgg(fig1, master=chart_frame)
-                canvas1.draw()
-                canvas1.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
-
-                # Create the line chart for quantities vs request dates
-                fig2, ax2 = plt.subplots(figsize=(10, 6))
-                ax2.plot(request_dates, quantities, marker='o', linestyle='-', color='blue')
-                ax2.set_xlabel('Request Dates')
-                ax2.set_ylabel('Quantity')
-                ax2.set_title('Quantity vs Request Date')
-                ax2.set_xticklabels(request_dates, rotation=45)
-
-                # Embed the second chart
-                canvas2 = FigureCanvasTkAgg(fig2, master=chart_frame)
-                canvas2.draw()
-                canvas2.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
-
-                # Create the pie chart for status distribution
-                fig3, ax3 = plt.subplots(figsize=(8, 6))
-                ax3.pie(status_count_values, labels=statuses, autopct='%1.1f%%', startangle=140)
-                ax3.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-                ax3.set_title('Transfers Status Distribution')
-
-                # Embed the third chart
-                canvas3 = FigureCanvasTkAgg(fig3, master=chart_frame)
-                canvas3.draw()
-                canvas3.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
-
-                # Calculate and display differences between request and approval dates
-                date_differences = [(approval_dates[i] - request_dates[i]).days for i in range(len(request_dates))]
-                avg_difference = sum(date_differences) / len(date_differences)
-
-                stats_frame = ttk.Frame(chart_frame, padding="10")
-                stats_frame.pack(side=tk.TOP, fill="both", expand=True)
-
-                ttk.Label(stats_frame, text=f"Avg Approval Time (days): {avg_difference:.2f}").pack(anchor=tk.W)
-
-                
-                
-                    # Data for bar chart
-    
-                query = "SELECT Category, COUNT(*) FROM Inventory GROUP BY Category"
-                cursor.execute(query)
-                category_counts = cursor.fetchall()
-
-                # Data for line graph
-                query = "SELECT Price, COUNT(*) FROM Inventory GROUP BY Price"
-                cursor.execute(query)
-                price_counts = cursor.fetchall()
-
-                # Data for size bar chart
-                query = "SELECT size, COUNT(*) FROM Inventory GROUP BY size"
-                cursor.execute(query)
-                size_counts = cursor.fetchall()
-
-                cursor.close()
-
-                # Extract data for charts
+                # Extract data for Inventory charts
                 categories = [category[0] for category in category_counts]
                 category_count_values = [count[1] for count in category_counts]
 
@@ -258,73 +188,333 @@ def create_employee_role_chart(Role):
                 sizes = [size[0] for size in size_counts]
                 size_count_values = [count[1] for count in size_counts]
 
-                # Create the bar chart for inventory categories
-                fig1, ax1 = plt.subplots(figsize=(12, 8))
-                ax1.bar(categories, category_count_values, color='blue')
-                ax1.set_xlabel('Inventory Categories')
-                ax1.set_ylabel('Number of Items')
-                ax1.set_title('Inventory Distribution by Category')
-                ax1.set_xticks(range(len(categories)))
-                ax1.set_xticklabels(categories, rotation=45)
+                # Extract data for Transfers charts
+                quantities = [data[0] for data in quantity_request_data]
+                request_dates = [data[1] for data in quantity_request_data]
 
-                # Embed the first chart
-                canvas1 = FigureCanvasTkAgg(fig1, master=chart_frame)
-                canvas1.draw()
-                canvas1.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
+                statuses = [status[0] for status in status_counts]
+                status_count_values = [count[1] for count in status_counts]
 
-                # Create the line chart for prices
-                fig2, ax2 = plt.subplots(figsize=(8, 6))
-                ax2.plot(prices, price_count_values, marker='o', linestyle='-', color='green')
-                ax2.set_xlabel('Prices')
-                ax2.set_ylabel('Number of Items')
-                ax2.set_title('Inventory Distribution by Price')
-                ax2.set_xticks(range(len(prices)))
-                ax2.set_xticklabels(prices, rotation=45)
+                request_dates_diff = [data[0] for data in request_approval_dates]
+                approval_dates = [data[1] for data in request_approval_dates]
 
-                # Embed the second chart
-                canvas2 = FigureCanvasTkAgg(fig2, master=chart_frame)
-                canvas2.draw()
-                canvas2.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
+                # Inventory charts
+                fig1_inv, ax1_inv = plt.subplots(figsize=(12, 8))
+                ax1_inv.bar(categories, category_count_values, color='blue')
+                ax1_inv.set_xlabel('Inventory Categories')
+                ax1_inv.set_ylabel('Number of Items')
+                ax1_inv.set_title('Inventory Distribution by Category')
+                ax1_inv.set_xticks(range(len(categories)))
+                ax1_inv.set_xticklabels(categories, rotation=45)
 
-                # Create the bar chart for sizes
-                fig3, ax3 = plt.subplots(figsize=(8, 6))
-                ax3.bar(sizes, size_count_values, color='red')
-                ax3.set_xlabel('Sizes')
-                ax3.set_ylabel('Number of Items')
-                ax3.set_title('Inventory Distribution by Size')
-                ax3.set_xticks(range(len(sizes)))
-                ax3.set_xticklabels(sizes, rotation=45)
+                canvas1_inv = FigureCanvasTkAgg(fig1_inv, master=chart_frame)
+                canvas1_inv.draw()
+                canvas1_inv.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
 
-                # Embed the third chart
-                canvas3 = FigureCanvasTkAgg(fig3, master=chart_frame)
-                canvas3.draw()
-                canvas3.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
+                fig2_inv, ax2_inv = plt.subplots(figsize=(8, 6))
+                ax2_inv.plot(prices, price_count_values, marker='o', linestyle='-', color='green')
+                ax2_inv.set_xlabel('Prices')
+                ax2_inv.set_ylabel('Number of Items')
+                ax2_inv.set_title('Inventory Distribution by Price')
+                ax2_inv.set_xticks(range(len(prices)))
+                ax2_inv.set_xticklabels(prices, rotation=45)
 
-                # Calculate and display statistical terms
-                total_items = sum(category_count_values)
-                min_count = min(category_count_values)
-                max_count = max(category_count_values)
-                avg_count = sum(category_count_values) / len(category_count_values)
+                canvas2_inv = FigureCanvasTkAgg(fig2_inv, master=chart_frame)
+                canvas2_inv.draw()
+                canvas2_inv.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
 
+                fig3_inv, ax3_inv = plt.subplots(figsize=(8, 6))
+                ax3_inv.bar(sizes, size_count_values, color='red')
+                ax3_inv.set_xlabel('Sizes')
+                ax3_inv.set_ylabel('Number of Items')
+                ax3_inv.set_title('Inventory Distribution by Size')
+                ax3_inv.set_xticks(range(len(sizes)))
+                ax3_inv.set_xticklabels(sizes, rotation=45)
 
+                canvas3_inv = FigureCanvasTkAgg(fig3_inv, master=chart_frame)
+                canvas3_inv.draw()
+                canvas3_inv.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
 
-                ttk.Label(stats_frame, text=f"Total Items: {total_items}").pack(anchor=tk.W)
-                ttk.Label(stats_frame, text=f"Min Count: {min_count}").pack(anchor=tk.W)
-                ttk.Label(stats_frame, text=f"Max Count: {max_count}").pack(anchor=tk.W)
-                ttk.Label(stats_frame, text=f"Avg Count: {avg_count:.2f}").pack(anchor=tk.W)
-            
+                # Transfers charts
+                fig1_trans, ax1_trans = plt.subplots(figsize=(10, 6))
+                ax1_trans.plot(request_dates, quantities, marker='o', linestyle='-', color='blue')
+                ax1_trans.set_xlabel('Request Dates')
+                ax1_trans.set_ylabel('Quantity')
+                ax1_trans.set_title('Quantity vs Request Date')
+                ax1_trans.set_xticklabels(request_dates, rotation=45)
+
+                canvas1_trans = FigureCanvasTkAgg(fig1_trans, master=chart_frame)
+                canvas1_trans.draw()
+                canvas1_trans.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
+
+                fig2_trans, ax2_trans = plt.subplots(figsize=(8, 6))
+                ax2_trans.pie(status_count_values, labels=statuses, autopct='%1.1f%%', startangle=140)
+                ax2_trans.axis('equal')
+                ax2_trans.set_title('Transfers Status Distribution')
+
+                canvas2_trans = FigureCanvasTkAgg(fig2_trans, master=chart_frame)
+                canvas2_trans.draw()
+                canvas2_trans.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
+
+                # Calculate and display differences between request and approval dates
+                date_differences = [(approval_dates[i] - request_dates_diff[i]).days for i in range(len(request_dates_diff))]
+                avg_difference = sum(date_differences) / len(date_differences)
+
+                stats_frame = ttk.Frame(chart_frame, padding="10")
+                stats_frame.pack(side=tk.TOP, fill="both", expand=True)
+
+                ttk.Label(stats_frame, text=f"Avg Approval Time (days): {avg_difference:.2f}").pack(anchor=tk.W)
+
             except mysql.connector.Error as error:
                 messagebox.showerror("Error", f"Failed to fetch data from MySQL: {error}")
 
             except Exception as e:
                 messagebox.showerror("Error", f"An unexpected error occurred: {str(e)}")
 
-        # def Inventory() : 
+        def Transfers_user(cursor, chart_frame, user_id):
+            try:
+                # Data for bar chart: Inventory categories
+                query = "SELECT Category, COUNT(*) FROM Inventory GROUP BY Category"
+                cursor.execute(query)
+                category_counts = cursor.fetchall()
 
+                # Data for line graph: Inventory prices
+                query = "SELECT Price, COUNT(*) FROM Inventory GROUP BY Price"
+                cursor.execute(query)
+                price_counts = cursor.fetchall()
 
-        # # Add a back button
-        # Inventory()
-        Transfers(cursor, chart_frame)
+                # Data for bar chart: Inventory sizes
+                query = "SELECT size, COUNT(*) FROM Inventory GROUP BY size"
+                cursor.execute(query)
+                size_counts = cursor.fetchall()
+
+                # Data for line graph: Quantity and Request Date from Transfers (for a specific user)
+                query = "SELECT Quantity, RequestDate FROM Transfers"
+                cursor.execute(query)
+                quantity_request_data = cursor.fetchall()
+
+                # Data for pie chart: Pending and Approved Transfers (for a specific user)
+                query = "SELECT Status, COUNT(*) FROM Transfers"
+                cursor.execute(query)
+                status_counts = cursor.fetchall()
+
+                # Data for scatter plot: Request day and Approval date difference per item (for a specific user)
+                query = "SELECT RequestDate, ApprovalDate FROM Transfers"
+                cursor.execute(query)
+                request_approval_dates = cursor.fetchall()
+
+                cursor.close()
+
+                # Extract data for Inventory charts
+                categories = [category[0] for category in category_counts]
+                category_count_values = [count[1] for count in category_counts]
+
+                prices = [price[0] for price in price_counts]
+                price_count_values = [count[1] for count in price_counts]
+
+                sizes = [size[0] for size in size_counts]
+                size_count_values = [count[1] for count in size_counts]
+
+                # Extract data for Transfers charts
+                quantities = [data[0] for data in quantity_request_data]
+                request_dates = [data[1] for data in quantity_request_data]
+
+                statuses = [status[0] for status in status_counts]
+                status_count_values = [count[1] for count in status_counts]
+
+                request_dates_diff = [data[0] for data in request_approval_dates]
+                approval_dates = [data[1] for data in request_approval_dates]
+
+                # Inventory charts
+                fig1_inv, ax1_inv = plt.subplots(figsize=(12, 8))
+                ax1_inv.bar(categories, category_count_values, color='blue')
+                ax1_inv.set_xlabel('Inventory Categories')
+                ax1_inv.set_ylabel('Number of Items')
+                ax1_inv.set_title('Inventory Distribution by Category')
+                ax1_inv.set_xticks(range(len(categories)))
+                ax1_inv.set_xticklabels(categories, rotation=45)
+
+                canvas1_inv = FigureCanvasTkAgg(fig1_inv, master=chart_frame)
+                canvas1_inv.draw()
+                canvas1_inv.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
+
+                fig2_inv, ax2_inv = plt.subplots(figsize=(8, 6))
+                ax2_inv.plot(prices, price_count_values, marker='o', linestyle='-', color='green')
+                ax2_inv.set_xlabel('Prices')
+                ax2_inv.set_ylabel('Number of Items')
+                ax2_inv.set_title('Inventory Distribution by Price')
+                ax2_inv.set_xticks(range(len(prices)))
+                ax2_inv.set_xticklabels(prices, rotation=45)
+
+                canvas2_inv = FigureCanvasTkAgg(fig2_inv, master=chart_frame)
+                canvas2_inv.draw()
+                canvas2_inv.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
+
+                fig3_inv, ax3_inv = plt.subplots(figsize=(8, 6))
+                ax3_inv.bar(sizes, size_count_values, color='red')
+                ax3_inv.set_xlabel('Sizes')
+                ax3_inv.set_ylabel('Number of Items')
+                ax3_inv.set_title('Inventory Distribution by Size')
+                ax3_inv.set_xticks(range(len(sizes)))
+                ax3_inv.set_xticklabels(sizes, rotation=45)
+
+                canvas3_inv = FigureCanvasTkAgg(fig3_inv, master=chart_frame)
+                canvas3_inv.draw()
+                canvas3_inv.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
+
+                # Transfers charts
+                fig1_trans, ax1_trans = plt.subplots(figsize=(10, 6))
+                ax1_trans.plot(request_dates, quantities, marker='o', linestyle='-', color='blue')
+                ax1_trans.set_xlabel('Request Dates')
+                ax1_trans.set_ylabel('Quantity')
+                ax1_trans.set_title('Quantity vs Request Date')
+                ax1_trans.set_xticklabels(request_dates, rotation=45)
+
+                canvas1_trans = FigureCanvasTkAgg(fig1_trans, master=chart_frame)
+                canvas1_trans.draw()
+                canvas1_trans.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
+
+                fig2_trans, ax2_trans = plt.subplots(figsize=(8, 6))
+                ax2_trans.pie(status_count_values, labels=statuses, autopct='%1.1f%%', startangle=140)
+                ax2_trans.axis('equal')
+                ax2_trans.set_title('Transfers Status Distribution')
+
+                canvas2_trans = FigureCanvasTkAgg(fig2_trans, master=chart_frame)
+                canvas2_trans.draw()
+                canvas2_trans.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
+
+                # Calculate and display differences between request and approval dates
+                date_differences = [(approval_dates[i] - request_dates_diff[i]).days for i in range(len(request_dates_diff))]
+                avg_difference = sum(date_differences) / len(date_differences)
+
+                stats_frame = ttk.Frame(chart_frame, padding="10")
+                stats_frame.pack(side=tk.TOP, fill="both", expand=True)
+
+                ttk.Label(stats_frame, text=f"Avg Approval Time (days): {avg_difference:.2f}").pack(anchor=tk.W)
+
+            except mysql.connector.Error as error:
+                messagebox.showerror("Error", f"Failed to fetch data from MySQL: {error}")
+
+            except Exception as e:
+                messagebox.showerror("Error", f"An unexpected error occurred: {str(e)}")
+
+        def Transactions(cursor, chart_frame):
+            try:
+                # Quantity by Item (Transactions)
+                query3 = "SELECT ItemID, SUM(Quantity) FROM Transaction GROUP BY ItemID"
+                cursor.execute(query3)
+                item_quantities = cursor.fetchall()
+
+                # Average Total Amount per Transaction (Transactions)
+                query5 = "SELECT Date, AVG(TotalAmount) FROM Transaction GROUP BY Date"
+                cursor.execute(query5)
+                date_avg_amounts = cursor.fetchall()
+
+                # Extracting overall statistics (Transactions)
+                query_stats = "SELECT COUNT(*), SUM(Quantity), SUM(TotalAmount) FROM Transaction"
+                cursor.execute(query_stats)
+                overall_stats = cursor.fetchone()
+
+                # Quantity vs Request Date (Transfers)
+                query6 = "SELECT RequestDate, SUM(Quantity) FROM Transfers GROUP BY RequestDate"
+                cursor.execute(query6)
+                quantity_request_data = cursor.fetchall()
+
+                # Transfers Status Distribution (Transfers)
+                query7 = "SELECT Status, COUNT(*) FROM Transfers GROUP BY Status"
+                cursor.execute(query7)
+                status_counts = cursor.fetchall()
+
+                cursor.close()
+
+                # Extract data (Transactions)
+                items = [item[0] for item in item_quantities]
+                item_quantities = [item[1] for item in item_quantities]
+
+                avg_dates = [data[0] for data in date_avg_amounts]
+                avg_amounts = [data[1] for data in date_avg_amounts]
+
+                # Extract data (Transfers)
+                request_dates = [data[0] for data in quantity_request_data]
+                quantities = [data[1] for data in quantity_request_data]
+
+                statuses = [status[0] for status in status_counts]
+                status_count_values = [count[1] for count in status_counts]
+
+                # Overall stats (Transactions)
+                total_transactions = overall_stats[0]
+                total_quantity = overall_stats[1]
+                total_amount = overall_stats[2]
+                avg_quantity_per_transaction = total_quantity / total_transactions
+                avg_amount_per_transaction = total_amount / total_transactions
+
+                # Display overall stats
+                stats_frame = ttk.Frame(chart_frame, padding="10")
+                stats_frame.pack(side=tk.TOP, fill="both", expand=True)
+
+                ttk.Label(stats_frame, text=f"Total Transactions: {total_transactions}").pack(anchor=tk.W)
+                ttk.Label(stats_frame, text=f"Total Quantity: {total_quantity}").pack(anchor=tk.W)
+                ttk.Label(stats_frame, text=f"Total Amount: ${total_amount:.2f}").pack(anchor=tk.W)
+                ttk.Label(stats_frame, text=f"Average Quantity per Transaction: {avg_quantity_per_transaction:.2f}").pack(anchor=tk.W)
+                ttk.Label(stats_frame, text=f"Average Amount per Transaction: ${avg_amount_per_transaction:.2f}").pack(anchor=tk.W)
+
+                # Graphs (Transactions)
+                fig3, ax3 = plt.subplots(figsize=(10, 6))
+                ax3.bar(items, item_quantities, color='green')
+                ax3.set_xlabel('Item IDs')
+                ax3.set_ylabel('Total Quantity')
+                ax3.set_title('Quantity by Item')
+
+                canvas3 = FigureCanvasTkAgg(fig3, master=chart_frame)
+                canvas3.draw()
+                canvas3.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
+
+                fig5, ax5 = plt.subplots(figsize=(10, 6))
+                ax5.plot(avg_dates, avg_amounts, marker='o', linestyle='-', color='red')
+                ax5.set_xlabel('Date')
+                ax5.set_ylabel('Average Total Amount ($)')
+                ax5.set_title('Average Total Amount per Transaction')
+                ax5.set_xticklabels(avg_dates, rotation=45)
+
+                canvas5 = FigureCanvasTkAgg(fig5, master=chart_frame)
+                canvas5.draw()
+                canvas5.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
+
+                # Graphs (Transfers)
+                fig6, ax6 = plt.subplots(figsize=(10, 6))
+                ax6.plot(request_dates, quantities, marker='o', linestyle='-', color='blue')
+                ax6.set_xlabel('Request Date')
+                ax6.set_ylabel('Quantity')
+                ax6.set_title('Quantity vs Request Date')
+                ax6.set_xticklabels(request_dates, rotation=45)
+
+                canvas6 = FigureCanvasTkAgg(fig6, master=chart_frame)
+                canvas6.draw()
+                canvas6.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
+
+                fig7, ax7 = plt.subplots(figsize=(10, 6))
+                ax7.pie(status_count_values, labels=statuses, autopct='%1.1f%%', startangle=140)
+                ax7.axis('equal')
+                ax7.set_title('Transfers Status Distribution')
+
+                canvas7 = FigureCanvasTkAgg(fig7, master=chart_frame)
+                canvas7.draw()
+                canvas7.get_tk_widget().pack(side=tk.TOP, fill="both", expand=True)
+
+            except mysql.connector.Error as error:
+                messagebox.showerror("Error", f"Failed to fetch data from MySQL: {error}")
+
+            except Exception as e:
+                messagebox.showerror("Error", f"An unexpected error occurred: {str(e)}")
+
+        
+        if (Role == "Manager"):
+            Transfers(cursor, chart_frame)
+        elif (Role == "Employee"):
+            Transactions(cursor, chart_frame)
+        else :
+            Transfers_user(cursor, chart_frame, user_id)
+
         def handle_back():
             stats_frame.pack_forget()
             chart_frame.pack_forget()
@@ -340,15 +530,6 @@ def create_employee_role_chart(Role):
 
     except Exception as e:
         messagebox.showerror("Error", f"An unexpected error occurred: {str(e)}")
-
-
-        # def handle_back():
-        #     stats_frame.pack_forget()
-        #     chart_frame.pack_forget()
-        #     main_frame.pack(fill="both", expand=True)
-
-        # ttk.Button(stats_frame, text="Back", command=handle_back, width=10, style="TButton").pack(side=tk.LEFT, padx=5)
-
 
         
 def change_password(Role, Username):
@@ -432,7 +613,7 @@ def show_main_menu(Role, Username, UserID):
         for name, table, fields, primary_key in button_names:
             button = ttk.Button(main_frame, text=name, command=lambda t=table, f=fields, p=primary_key: show_table_frame(t, f, p, Role, UserID), style="TButton")
             button.pack(pady=5)
-        ttk.Button(main_frame, text="Stats", command=lambda: create_employee_role_chart(Role), width=10, style="TButton").pack(pady=5)
+        ttk.Button(main_frame, text="Stats", command=lambda: create_employee_role_chart(Role, UserID), width=10, style="TButton").pack(pady=5)
 
     elif Role == "User":
         button_indices = [4, 5, 6]
@@ -440,7 +621,7 @@ def show_main_menu(Role, Username, UserID):
         for name, table, fields, primary_key in relevant_buttons:
             button = ttk.Button(main_frame, text=name, command=lambda t=table, f=fields, p=primary_key: show_table_frame(t, f, p, Role,UserID), style="TButton")
             button.pack(pady=5)
-        ttk.Button(main_frame, text="Stats", command=lambda: create_employee_role_chart(Role), width=10, style="TButton").pack(pady=5)
+        ttk.Button(main_frame, text="Stats", command=lambda: create_employee_role_chart(Role, UserID), width=10, style="TButton").pack(pady=5)
 
     
     else :
@@ -449,7 +630,7 @@ def show_main_menu(Role, Username, UserID):
         for name, table, fields, primary_key in relevant_buttons:
             button = ttk.Button(main_frame, text=name, command=lambda t=table, f=fields, p=primary_key: show_table_frame(t, f, p, Role,UserID), style="TButton")
             button.pack(pady=5)
-        ttk.Button(main_frame, text="Stats", command=lambda: create_employee_role_chart(Role), width=10, style="TButton").pack(pady=5)
+        ttk.Button(main_frame, text="Stats", command=lambda: create_employee_role_chart(Role, UserID), width=10, style="TButton").pack(pady=5)
 
         
 
@@ -527,9 +708,7 @@ def show_table_frame(table_name, fields, primary_key, Role, UserID):
         # Display Shopping Cart
         if table_name == "shoppingcart":
             def show_shopping_cart(inner_frame, connection, UserID):
-                
                     try:
-                        
                         for widget in inner_frame.winfo_children():
                             widget.destroy()
 
@@ -539,7 +718,7 @@ def show_table_frame(table_name, fields, primary_key, Role, UserID):
 
                         # Add scrollbar to the canvas
                         scrollbar = ttk.Scrollbar(inner_frame, orient="vertical", command=canvas.yview)
-                        scrollbar.pack(side=tk.RIGHT, fill="y")
+                        scrollbar.pack(side=tk.LEFT, fill="y")
 
                         # Configure canvas to use scrollbar
                         canvas.configure(yscrollcommand=scrollbar.set)
@@ -564,7 +743,7 @@ def show_table_frame(table_name, fields, primary_key, Role, UserID):
 
                             # Create a frame for each cart item
                             cart_item_frame = ttk.Frame(inner_frame, borderwidth=2, relief="groove", padding=10)
-                            cart_item_frame.pack(side=tk.TOP, fill="x", padx=10, pady=10)
+                            cart_item_frame.pack(side=tk.LEFT, fill="x", padx=10, pady=10)
 
                             # Display cart item details
                             ttk.Label(cart_item_frame, text=f"Shopping Cart - Item ID: {item_id}", font=("Helvetica", 12, "bold")).pack(anchor="w", padx=10, pady=2)
